@@ -88,6 +88,21 @@ function Write-DataReaderToSQL
         if($FireTriggers) {$CopyOptions += [System.Data.SqlClient.SqlBulkCopyOptions]::FireTriggers;}
         
         [System.Data.SqlClient.SqlBulkCopy] $bulkCopy = new-object System.Data.SqlClient.SqlBulkCopy ($conn,$CopyOptions,$null)
+
+        #Map Columns
+        for($i=0; $i -lt $DataReader.DataReader.FieldCount; $i++){
+            $columnName = $DataReader.DataReader.GetName($i)
+            if ($Username){
+                $destinationColumnName = (Invoke-Sqlcmd -ServerInstance  $ServerInstance -Database $Database -Username $Username -Password $Password -Query "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = OBJECT_NAME(OBJECT_ID('$tableName')) AND COLUMN_NAME = '$columnName'").COLUMN_NAME
+            }
+                $destinationColumnName = (Invoke-Sqlcmd -ServerInstance  $ServerInstance -Database $Database -Query "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = OBJECT_NAME(OBJECT_ID('$tableName')) AND COLUMN_NAME = '$columnName'").COLUMN_NAME
+            else{
+            
+            }
+            [System.Data.SqlClient.SqlBulkCopyColumnMapping] $mapID = new-object System.Data.SqlClient.SqlBulkCopyColumnMapping($columnName , $destinationColumnName);
+            $bulkCopy.ColumnMappings.Add($mapID);
+        }
+        
 		
         $bulkCopy.DestinationTableName = $tableName
         $bulkCopy.BatchSize = $BatchSize
